@@ -1,15 +1,40 @@
 # Dataset
 
-This project uses the Hausa portion of the AfriSenti benchmark for three-class sentiment classification.
+## AfriSenti Hausa Dataset
 
-The dataset contains real-world Hausa social media text with the following sentiment classes:
+HausaSentiment uses the Hausa portion of the AfriSenti benchmark for three-class sentiment classification.
+
+The dataset contains naturally occurring Hausa social media text annotated with three sentiment labels:
 
 - Negative
 - Neutral
 - Positive
 
-The official train, development, and test splits were preserved during the research workflow.
+## Data Splits
 
-The raw dataset files are intentionally not included in the GitHub repository because the repository is focused on the project code, experiments, model-development notebook, and deployment files.
+The official dataset splits are preserved:
 
-The research notebook documents the dataset loading, quality checks, preprocessing, class distribution analysis, and evaluation process.
+- Training set
+- Development/validation set
+- Test set
+
+The research notebook loads these splits separately and uses them for model training, validation, and final evaluation.
+
+## Preprocessing
+
+The research workflow performs basic data-quality checks before model training, including:
+
+- Missing-value checks
+- Duplicate detection
+- Empty-text checks
+- Label validation
+- Class-distribution analysis
+- Text-length analysis
+
+The dataset is not synthetically generated for this project.
+
+## Repository Policy
+
+The raw dataset files are not committed to GitHub.
+
+This repository instead contains the code and documentation required to understand and reproduce the data preparation workflow.
