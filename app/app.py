@@ -6,15 +6,21 @@ from pathlib import Path
 import streamlit as st
 
 
-# Allow the app to import modules from the src directory
+# --------------------------------------------------
+# Project paths
+# --------------------------------------------------
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 SRC_DIR = ROOT_DIR / "src"
 
 sys.path.append(str(SRC_DIR))
 
 
+MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
+
+
 # --------------------------------------------------
-# Configuration
+# Page configuration
 # --------------------------------------------------
 
 st.set_page_config(
@@ -24,25 +30,26 @@ st.set_page_config(
 )
 
 
-MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
-
-
 # --------------------------------------------------
-# Page title
+# Header
 # --------------------------------------------------
 
 st.title("HausaSentiment")
 
-st.subheader("Hausa Sentiment Classification")
-
 st.write(
-    "Enter a Hausa text and the fine-tuned XLM-R model "
-    "will classify its sentiment as negative, neutral, or positive."
+    "A transformer-based sentiment classifier "
+    "for Hausa text."
+)
+
+st.info(
+    "Enter a Hausa sentence or social media message "
+    "to classify its sentiment as Negative, Neutral, "
+    "or Positive."
 )
 
 
 # --------------------------------------------------
-# Load model
+# Model loading
 # --------------------------------------------------
 
 @st.cache_resource
@@ -55,25 +62,38 @@ try:
 
 except FileNotFoundError:
     st.error(
-        "The trained model was not found. "
-        "Please place the fine-tuned XLM-R model inside "
-        "'models/xlmr_hausa_sentiment'."
+        "The trained model was not found."
     )
+
+    st.write(
+        "Expected model location:"
+    )
+
+    st.code(
+        "models/xlmr_hausa_sentiment"
+    )
+
     st.stop()
 
 except Exception as error:
-    st.error(f"Could not load the model: {error}")
+    st.error(
+        f"Unable to load the trained model: {error}"
+    )
+
     st.stop()
 
 
 # --------------------------------------------------
-# User input
+# Input
 # --------------------------------------------------
 
+st.subheader("Enter Hausa text")
+
 text = st.text_area(
-    "Enter Hausa text",
+    "Hausa text",
     placeholder="Rubuta magana a Hausa a nan...",
-    height=150,
+    height=160,
+    label_visibility="collapsed",
 )
 
 
@@ -81,10 +101,17 @@ text = st.text_area(
 # Prediction
 # --------------------------------------------------
 
-if st.button("Analyze Sentiment", type="primary"):
+if st.button(
+    "Analyze Sentiment",
+    type="primary",
+    use_container_width=True,
+):
 
     if not text.strip():
-        st.warning("Please enter some Hausa text.")
+
+        st.warning(
+            "Please enter some Hausa text first."
+        )
 
     else:
 
@@ -97,38 +124,52 @@ if st.button("Analyze Sentiment", type="primary"):
                 device=device,
             )
 
-            label = result["label"]
-            confidence = result["confidence"]
+            st.divider()
 
-            st.success(f"Sentiment: {label}")
+            st.subheader("Prediction")
+
+            st.success(
+                f"Sentiment: {result['label']}"
+            )
 
             st.metric(
                 "Confidence",
-                f"{confidence * 100:.2f}%"
+                f"{result['confidence'] * 100:.2f}%"
             )
 
-            st.write("### Class probabilities")
+            st.subheader(
+                "Class probabilities"
+            )
 
-            for sentiment, probability in result["probabilities"].items():
+            for (
+                sentiment,
+                probability,
+            ) in result["probabilities"].items():
+
+                percentage = probability * 100
 
                 st.write(
-                    f"**{sentiment}**: "
-                    f"{probability * 100:.2f}%"
+                    f"**{sentiment} — "
+                    f"{percentage:.2f}%**"
                 )
 
-                st.progress(probability)
+                st.progress(
+                    probability
+                )
 
         except Exception as error:
-            st.error(f"Prediction failed: {error}")
+
+            st.error(
+                f"Prediction failed: {error}"
+            )
 
 
 # --------------------------------------------------
-# Project information
+# Footer
 # --------------------------------------------------
 
 st.divider()
 
 st.caption(
-    "HausaSentiment — Transformer-based sentiment "
-    "classification for Hausa text using fine-tuned XLM-R."
+    "HausaSentiment | XLM-R-based Hausa sentiment classification"
 )
