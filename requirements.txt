@@ -3,6 +3,5 @@ torch
 transformers
 sentencepiece
 safetensors
-pandas
-scikit-learn
 numpy
+scikit-learn

@@ -21,11 +21,11 @@ Thumbs.db
 # Environment variables
 .env
 
-# Local datasets
+# Raw and processed datasets
 data/raw/
 data/processed/
 
-# Large trained model files
+# Trained model
 models/xlmr_hausa_sentiment/
 
 # Model/checkpoint files
