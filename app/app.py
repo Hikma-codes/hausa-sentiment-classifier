@@ -1,27 +1,22 @@
-from predict import predict_sentiment
-from model_utils import load_model
+
+from src.predict import predict_sentiment
+from src.model_utils import load_model
 import sys
 from pathlib import Path
 
 import streamlit as st
 
 
-# --------------------------------------------------
-# Project paths
-# --------------------------------------------------
-
+# Find the project root, regardless of where app.py is located.
 ROOT_DIR = Path(__file__).resolve().parent.parent
-SRC_DIR = ROOT_DIR / "src"
 
-sys.path.append(str(SRC_DIR))
-
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
 
+# Import only after adding the project root to Python's path.
 
-# --------------------------------------------------
-# Page configuration
-# --------------------------------------------------
 
 st.set_page_config(
     page_title="HausaSentiment",
@@ -29,147 +24,86 @@ st.set_page_config(
     layout="centered",
 )
 
-
-# --------------------------------------------------
-# Header
-# --------------------------------------------------
-
 st.title("HausaSentiment")
 
 st.write(
-    "A transformer-based sentiment classifier "
-    "for Hausa text."
+    "A transformer-based sentiment classifier for Hausa text. "
+    "Enter a Hausa sentence or social media message to classify "
+    "its sentiment as Negative, Neutral, or Positive."
 )
 
-st.info(
-    "Enter a Hausa sentence or social media message "
-    "to classify its sentiment as Negative, Neutral, "
-    "or Positive."
-)
+st.caption("Powered by your fine-tuned XLM-RoBERTa model.")
 
 
-# --------------------------------------------------
-# Model loading
-# --------------------------------------------------
-
-@st.cache_resource
-def get_model():
-    return load_model(MODEL_PATH)
+@st.cache_resource(show_spinner="Loading your trained model...")
+def get_model(model_directory):
+    return load_model(model_directory)
 
 
+# Load model and show useful errors rather than hiding the traceback.
 try:
-    tokenizer, model, device = get_model()
-
-except FileNotFoundError:
-    st.error(
-        "The trained model was not found."
-    )
-
-    st.write(
-        "Expected model location:"
-    )
-
-    st.code(
-        "models/xlmr_hausa_sentiment"
-    )
-
-    st.stop()
+    tokenizer, model, device, labels = get_model(str(MODEL_PATH))
 
 except Exception as error:
-    st.error(
-        f"Unable to load the trained model: {error}"
-    )
+    st.error("The model could not be loaded.")
+
+    st.write("Expected model location:")
+    st.code(str(MODEL_PATH))
+
+    st.write("Error details:")
+    st.code(f"{type(error).__name__}: {error}")
 
     st.stop()
 
 
-# --------------------------------------------------
-# Input
-# --------------------------------------------------
+st.success(f"Model loaded successfully on {device}.")
 
-st.subheader("Enter Hausa text")
+st.subheader("Analyze Hausa text")
 
-text = st.text_area(
-    "Hausa text",
-    placeholder="Rubuta magana a Hausa a nan...",
-    height=160,
-    label_visibility="collapsed",
+text_input = st.text_area(
+    "Enter your Hausa sentence or message",
+    placeholder="Ina matukar son wannan.",
+    height=130,
 )
 
-
-# --------------------------------------------------
-# Prediction
-# --------------------------------------------------
-
-if st.button(
-    "Analyze Sentiment",
-    type="primary",
-    use_container_width=True,
-):
-
-    if not text.strip():
-
-        st.warning(
-            "Please enter some Hausa text first."
-        )
+if st.button("Analyze sentiment", type="primary", use_container_width=True):
+    if not text_input.strip():
+        st.warning("Please enter some text first.")
 
     else:
-
         try:
-
-            result = predict_sentiment(
-                text=text,
-                tokenizer=tokenizer,
-                model=model,
-                device=device,
-            )
-
-            st.divider()
-
-            st.subheader("Prediction")
-
-            st.success(
-                f"Sentiment: {result['label']}"
-            )
-
-            st.metric(
-                "Confidence",
-                f"{result['confidence'] * 100:.2f}%"
-            )
-
-            st.subheader(
-                "Class probabilities"
-            )
-
-            for (
-                sentiment,
-                probability,
-            ) in result["probabilities"].items():
-
-                percentage = probability * 100
-
-                st.write(
-                    f"**{sentiment} — "
-                    f"{percentage:.2f}%**"
+            with st.spinner("Analyzing your text..."):
+                result = predict_sentiment(
+                    text=text_input,
+                    tokenizer=tokenizer,
+                    model=model,
+                    device=device,
+                    labels=labels,
                 )
 
-                st.progress(
-                    probability
-                )
+            st.subheader("Predicted sentiment")
+            st.header(result["label"])
+
+            st.write(
+                f"Prediction confidence: {result['confidence']:.1%}"
+            )
+            st.progress(result["confidence"])
+
+            st.subheader("Class probabilities")
+
+            for label, probability in result["probabilities"].items():
+                st.write(f"**{label}: {probability:.1%}**")
+                st.progress(probability)
+
+            st.caption(
+                "Confidence represents the model's estimated probability, "
+                "not a guarantee that the prediction is correct."
+            )
 
         except Exception as error:
+            st.error("Prediction failed.")
+            st.code(f"{type(error).__name__}: {error}")
 
-            st.error(
-                f"Prediction failed: {error}"
-            )
-
-
-# --------------------------------------------------
-# Footer
-# --------------------------------------------------
 
 st.divider()
-
-st.caption(
-    "HausaSentiment | XLM-R-based Hausa sentiment classification"
-)
+st.caption("HausaSentiment | Hausa-language NLP project")

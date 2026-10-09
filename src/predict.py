@@ -1,7 +1,7 @@
+
 import torch
 
-from model_utils import LABELS
-from preprocessing import clean_text
+from src.preprocessing import clean_text
 
 
 def predict_sentiment(
@@ -9,18 +9,13 @@ def predict_sentiment(
     tokenizer,
     model,
     device,
+    labels,
     max_length=128,
 ):
-    """
-    Predict the sentiment of a Hausa text.
-    """
-
     text = clean_text(text)
 
     if not text:
-        raise ValueError(
-            "Please enter some Hausa text."
-        )
+        raise ValueError("Please enter some Hausa text.")
 
     inputs = tokenizer(
         text,
@@ -31,31 +26,21 @@ def predict_sentiment(
     )
 
     inputs = {
-        key: value.to(device)
-        for key, value in inputs.items()
+        name: tensor.to(device)
+        for name, tensor in inputs.items()
     }
 
     with torch.no_grad():
         outputs = model(**inputs)
 
-    probabilities = torch.softmax(
-        outputs.logits,
-        dim=-1,
-    )[0]
-
-    predicted_class = torch.argmax(
-        probabilities
-    ).item()
-
-    confidence = probabilities[
-        predicted_class
-    ].item()
+    probabilities = torch.softmax(outputs.logits, dim=-1)[0]
+    predicted_index = int(torch.argmax(probabilities).item())
 
     return {
-        "label": LABELS[predicted_class],
-        "confidence": confidence,
+        "label": labels[predicted_index],
+        "confidence": float(probabilities[predicted_index].item()),
         "probabilities": {
-            LABELS[i]: probabilities[i].item()
-            for i in range(len(LABELS))
+            labels[index]: float(probabilities[index].item())
+            for index in range(len(probabilities))
         },
     }

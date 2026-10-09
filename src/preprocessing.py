@@ -1,11 +1,7 @@
-def clean_text(text: str) -> str:
-    """
-    Apply basic text normalization before inference.
-    """
 
+def clean_text(text):
+    """Basic text cleaning for Hausa sentiment prediction."""
     if text is None:
         return ""
 
-    text = str(text).strip().lower()
-
-    return text
+    return str(text).strip().lower()
