@@ -1,18 +1,29 @@
 
-from src.predict import predict_sentiment
-from src.model_utils import load_model
-import streamlit as st
 from pathlib import Path
-import sys
 
-# Add the main project directory to Python's import path first.
+import streamlit as st
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+
+# Project paths and hosted model
 ROOT_DIR = Path(__file__).resolve().parent.parent
+LOCAL_MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
+MODEL_ID = "hhiikkmaa/hausa-sentiment-xlmr"
 
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+# Use the local model on your computer and Hugging Face in the cloud.
+MODEL_SOURCE = (
+    str(LOCAL_MODEL_PATH)
+    if LOCAL_MODEL_PATH.is_dir()
+    else MODEL_ID
+)
 
+DEFAULT_LABELS = {
+    0: "Negative",
+    1: "Neutral",
+    2: "Positive",
+}
 
-MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
 
 st.set_page_config(
     page_title="HausaSentiment",
@@ -32,23 +43,56 @@ st.caption("Powered by your fine-tuned XLM-RoBERTa model.")
 
 
 @st.cache_resource(show_spinner="Loading your trained model...")
-def get_model(model_directory):
-    return load_model(model_directory)
+def get_model(model_source):
+    tokenizer = AutoTokenizer.from_pretrained(model_source)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_source
+    )
+
+    if model.config.num_labels != 3:
+        raise ValueError(
+            f"Expected 3 sentiment classes, "
+            f"but the model has {model.config.num_labels}."
+        )
+
+    labels = DEFAULT_LABELS.copy()
+
+    saved_labels = getattr(model.config, "id2label", None)
+    if saved_labels:
+        converted = {}
+
+        for index, name in saved_labels.items():
+            name = str(name).strip().lower()
+
+            if "negative" in name:
+                converted[int(index)] = "Negative"
+            elif "neutral" in name:
+                converted[int(index)] = "Neutral"
+            elif "positive" in name:
+                converted[int(index)] = "Positive"
+
+        if len(converted) == 3:
+            labels = converted
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    model.to(device)
+    model.eval()
+
+    return tokenizer, model, device, labels
 
 
-# Load model and show useful errors rather than hiding the traceback.
 try:
-    tokenizer, model, device, labels = get_model(str(MODEL_PATH))
+    tokenizer, model, device, labels = get_model(MODEL_SOURCE)
 
 except Exception as error:
     st.error("The model could not be loaded.")
-
-    st.write("Expected model location:")
-    st.code(str(MODEL_PATH))
-
+    st.write("Model source:")
+    st.code(MODEL_SOURCE)
     st.write("Error details:")
     st.code(f"{type(error).__name__}: {error}")
-
     st.stop()
 
 
@@ -67,37 +111,62 @@ if st.button(
     type="primary",
     use_container_width=True,
 ):
-    if not text_input.strip():
+    cleaned_text = text_input.strip().lower()
+
+    if not cleaned_text:
         st.warning("Please enter some text first.")
 
     else:
         try:
             with st.spinner("Analyzing your text..."):
-                result = predict_sentiment(
-                    text=text_input,
-                    tokenizer=tokenizer,
-                    model=model,
-                    device=device,
-                    labels=labels,
+                inputs = tokenizer(
+                    cleaned_text,
+                    return_tensors="pt",
+                    truncation=True,
+                    padding=True,
+                    max_length=128,
+                )
+
+                inputs = {
+                    name: tensor.to(device)
+                    for name, tensor in inputs.items()
+                }
+
+                with torch.no_grad():
+                    outputs = model(**inputs)
+
+                probabilities = torch.softmax(
+                    outputs.logits, dim=-1
+                )[0]
+
+                predicted_index = int(
+                    torch.argmax(probabilities).item()
+                )
+
+                predicted_label = labels[predicted_index]
+                confidence = float(
+                    probabilities[predicted_index].item()
                 )
 
             st.subheader("Predicted sentiment")
-            st.header(result["label"])
+            st.header(predicted_label)
 
             st.write(
-                f"Prediction confidence: {result['confidence']:.1%}"
+                f"Prediction confidence: {confidence:.1%}"
             )
-            st.progress(result["confidence"])
+            st.progress(confidence)
 
             st.subheader("Class probabilities")
 
-            for label, probability in result["probabilities"].items():
+            for index, label in labels.items():
+                probability = float(probabilities[index].item())
                 st.write(f"**{label}: {probability:.1%}**")
                 st.progress(probability)
 
             st.caption(
-                "Note that, confidence represents the model's estimated probability, "
-                "not a guarantee that the prediction is correct."
+                "Confidence represents the model's estimated "
+                "probability, not a guarantee that the prediction "
+                "is correct."
             )
 
         except Exception as error:
@@ -106,4 +175,4 @@ if st.button(
 
 
 st.divider()
-st.caption("Hausa Sentiment | Hausa-language NLP project")
+st.caption("HausaSentiment | Hausa-language NLP project")
