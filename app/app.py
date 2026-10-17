@@ -1,9 +1,11 @@
+
 from src.predict import predict_sentiment
 from src.model_utils import load_model
 import streamlit as st
 from pathlib import Path
 import sys
 
+# Add the main project directory to Python's import path first.
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 if str(ROOT_DIR) not in sys.path:
