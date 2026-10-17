@@ -1,6 +1,5 @@
-
-from src.model_utils import load_model
 from src.predict import predict_sentiment
+from src.model_utils import load_model
 import streamlit as st
 from pathlib import Path
 import sys
