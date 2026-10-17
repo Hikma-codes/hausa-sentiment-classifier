@@ -1,22 +1,17 @@
 
-from src.predict import predict_sentiment
 from src.model_utils import load_model
-import sys
-from pathlib import Path
-
+from src.predict import predict_sentiment
 import streamlit as st
+from pathlib import Path
+import sys
 
-
-# Find the project root, regardless of where app.py is located.
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+
 MODEL_PATH = ROOT_DIR / "models" / "xlmr_hausa_sentiment"
-
-# Import only after adding the project root to Python's path.
-
 
 st.set_page_config(
     page_title="HausaSentiment",
@@ -66,7 +61,11 @@ text_input = st.text_area(
     height=130,
 )
 
-if st.button("Analyze sentiment", type="primary", use_container_width=True):
+if st.button(
+    "Analyze sentiment",
+    type="primary",
+    use_container_width=True,
+):
     if not text_input.strip():
         st.warning("Please enter some text first.")
 
@@ -96,7 +95,7 @@ if st.button("Analyze sentiment", type="primary", use_container_width=True):
                 st.progress(probability)
 
             st.caption(
-                "Confidence represents the model's estimated probability, "
+                "Note that, confidence represents the model's estimated probability, "
                 "not a guarantee that the prediction is correct."
             )
 
@@ -106,4 +105,4 @@ if st.button("Analyze sentiment", type="primary", use_container_width=True):
 
 
 st.divider()
-st.caption("HausaSentiment | Hausa-language NLP project")
+st.caption("Hausa Sentiment | Hausa-language NLP project")

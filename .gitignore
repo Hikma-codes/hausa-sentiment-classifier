@@ -25,12 +25,8 @@ Thumbs.db
 data/raw/
 data/processed/
 
-# Trained model
-models/xlmr_hausa_sentiment/
 
 # Model/checkpoint files
-*.bin
-*.safetensors
 *.pt
 *.pth
 *.ckpt
