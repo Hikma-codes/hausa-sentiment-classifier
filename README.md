@@ -1,5 +1,7 @@
 HausaSentiment
 A Hausa-language sentiment classifier that predicts whether a text expresses Negative, Neutral, or Positive sentiment.
+
+
 Project links
 - Live app: https://hausa-sentiment-classifier-zpzfzuovfjnxluqptxtyoo.streamlit.app/
 - Demo video: https://www.youtube.com/watch?v=j7CMh5eaS2I
@@ -9,10 +11,7 @@ Project links
 
 
 Overview
-HausaSentiment is an end-to-end Natural Language Processing (NLP) project focused on classifying written Hausa text into three sentiment categories:
-- Negative
-- Neutral
-- Positive
+An end-to-end Natural Language Processing (NLP) project for classifying Hausa text into Negative, Neutral, and Positive sentiment using traditional machine learning and a fine-tuned XLM-RoBERTa transformer model.
 
 The project compares a traditional machine-learning baseline with a fine-tuned multilingual transformer model. The selected model is available through a Streamlit web application.
 Models
